@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================
+     ALL CONFIGURATION LIVES IN THE <script> BLOCK AT THE BOTTOM
+     (search for "REDIGÉR CONFIG HER"). Farver, logo, spørgsmål
+     og Klaviyo-nøgler ligger samlet ét sted.
+     ========================================================= */
+
+  :root{
+    --accent: #E24326;
+    --accent-dark: #B8341A;
+    --accent-soft: #FBE6E1;
+    --ink: #1A1A1A;
+    --ink-soft: #6B6B6E;
+    --paper: #FFFFFF;
+    --card: #FFFFFF;
+    --line: #E9E5E3;
+    --success: #16A34A;
+    --success-soft: #ECFDF3;
+    --error: #DC2626;
+    --error-soft: #FEF2F2;
+    --radius: 16px;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    min-height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 16px;
+    background: transparent;
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color:var(--ink);
+  }
+
+  .quiz-widget{
+    width:100%;
+    max-width:460px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow: 0 1px 2px rgba(20,20,30,0.04), 0 12px 32px -12px rgba(20,20,30,0.16);
+    overflow:hidden;
+    position:relative;
+  }
+
+  .qw-body{ padding:32px 28px 28px; }
+
+  /* ---------- shared bits ---------- */
+  .qw-logo{
+    display:block;
+    max-height:40px;
+    max-width:160px;
+    object-fit:contain;
+    margin:0 auto 20px;
+  }
+  .qw-eyebrow{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--accent);
+    text-align:center;
+    margin:0 0 10px;
+  }
+  h1.qw-headline{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:25px;
+    font-weight:700;
+    line-height:1.2;
+    text-align:center;
+    margin:0 0 10px;
+    color:var(--ink);
+  }
+  p.qw-sub{
+    font-size:14.5px;
+    line-height:1.55;
+    color:var(--ink-soft);
+    text-align:center;
+    margin:0 0 24px;
+  }
+
+  .qw-field{ margin-bottom:14px; }
+  .qw-field label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:6px;
+    color:var(--ink);
+  }
+  .qw-field input{
+    width:100%;
+    padding:12px 14px;
+    font-size:15px;
+    font-family:inherit;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    background:#FAFAFA;
+    color:var(--ink);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .qw-field input:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  .qw-error-msg{
+    font-size:12.5px;
+    color:var(--error);
+    margin-top:5px;
+    display:none;
+  }
+  .qw-error-msg.show{ display:block; }
+
+  button.qw-btn{
+    width:100%;
+    padding:14px 16px;
+    font-family:inherit;
+    font-size:15.5px;
+    font-weight:600;
+    border:none;
+    border-radius:10px;
+    background:var(--accent);
+    color:#fff;
+    cursor:pointer;
+    transition:background .15s ease, transform .1s ease;
+  }
+  button.qw-btn:hover{ background:var(--accent-dark); }
+  button.qw-btn:active{ transform:scale(.99); }
+  button.qw-btn:disabled{ opacity:.45; cursor:not-allowed; }
+  button.qw-btn:focus-visible, .qw-option:focus-visible, .qw-field input:focus-visible{
+    outline:2px solid var(--accent-dark);
+    outline-offset:2px;
+  }
+  .qw-btn-ghost{
+    background:transparent;
+    color:var(--accent);
+    border:1.5px solid var(--line);
+  }
+  .qw-btn-ghost:hover{ background:var(--accent-soft); }
+
+  .qw-fineprint{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-top:14px;
+    line-height:1.5;
+  }
+
+  /* ---------- progress ---------- */
+  .qw-progress{
+    display:flex;
+    gap:6px;
+    margin-bottom:22px;
+  }
+  .qw-progress i{
+    flex:1;
+    height:4px;
+    border-radius:4px;
+    background:var(--line);
+    overflow:hidden;
+  }
+  .qw-progress i span{
+    display:block;
+    height:100%;
+    width:0%;
+    background:var(--accent);
+    transition:width .35s ease;
+  }
+  .qw-progress i.qw-done span{ width:100%; }
+  .qw-progress i.qw-active span{ width:100%; }
+  .qw-qcount{
+    text-align:center;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    letter-spacing:.03em;
+    margin:-10px 0 16px;
+  }
+
+  /* ---------- question ---------- */
+  p.qw-context{
+    font-size:13px;
+    font-style:italic;
+    line-height:1.55;
+    color:var(--ink-soft);
+    margin:0 0 12px;
+    padding-left:12px;
+    border-left:2px solid var(--accent-soft);
+  }
+  h2.qw-question{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:18.5px;
+    font-weight:600;
+    line-height:1.35;
+    margin:0 0 16px;
+  }
+  .qw-options{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+  .qw-option{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    text-align:left;
+    padding:13px 14px;
+    font-family:inherit;
+    font-size:14.5px;
+    font-weight:500;
+    color:var(--ink);
+    background:#FAFAFA;
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    cursor:pointer;
+    transition:border-color .12s ease, background .12s ease;
+  }
+  .qw-option:hover:not(:disabled){ border-color:var(--accent); }
+  .qw-option .qw-chip{
+    flex:none;
+    width:26px;
+    height:26px;
+    border-radius:7px;
+    background:var(--accent-soft);
+    color:var(--accent-dark);
+    font-size:12.5px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .qw-option:disabled{ cursor:default; }
+  .qw-option.correct{
+    border-color:var(--success);
+    background:var(--success-soft);
+  }
+  .qw-option.correct .qw-chip{ background:var(--success); color:#fff; }
+  .qw-option.incorrect{
+    border-color:var(--error);
+    background:var(--error-soft);
+  }
+  .qw-option.incorrect .qw-chip{ background:var(--error); color:#fff; }
+  .qw-option.dim{ opacity:.5; }
+
+  .qw-explanation{
+    display:none;
+    font-size:13.5px;
+    line-height:1.6;
+    color:var(--ink);
+    background:#FAFAFA;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 16px;
+    margin-bottom:16px;
+  }
+  .qw-explanation.show{ display:block; }
+  .qw-explanation strong{ color:var(--accent-dark); }
+
+  /* ---------- results / "billet" screen ---------- */
+  .qw-ticket-divider{
+    position:relative;
+    height:0;
+    border-top:2px dashed var(--line);
+    margin:26px -28px 22px;
+  }
+  .qw-ticket-divider::before,
+  .qw-ticket-divider::after{
+    content:"";
+    position:absolute;
+    top:-11px;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    background:var(--paper);
+    border:1px solid var(--line);
+  }
+  .qw-ticket-divider::before{ left:-11px; }
+  .qw-ticket-divider::after{ right:-11px; }
+
+  .qw-score-wrap{ display:flex; justify-content:center; margin-bottom:14px; }
+  .qw-score-ring{ position:relative; width:132px; height:132px; }
+  .qw-score-ring svg{ transform:rotate(-90deg); width:100%; height:100%; }
+  .qw-score-ring circle{ fill:none; stroke-width:10; }
+  .qw-score-ring .qw-track{ stroke:var(--line); }
+  .qw-score-ring .qw-fill{
+    stroke:var(--accent);
+    stroke-linecap:round;
+    stroke-dasharray:352;
+    stroke-dashoffset:352;
+    transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1);
+  }
+  .qw-score-num{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+  }
+  .qw-score-num strong{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:30px;
+    line-height:1;
+  }
+  .qw-score-num span{
+    font-size:11px;
+    color:var(--ink-soft);
+    font-weight:600;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    margin-top:3px;
+  }
+  .qw-result-tier{
+    text-align:center;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:20px;
+    margin:0 0 6px;
+  }
+  .qw-result-msg{
+    text-align:center;
+    font-size:14px;
+    color:var(--ink-soft);
+    margin:0 0 22px;
+    line-height:1.5;
+  }
+  .qw-confirm-banner{
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+    font-size:12.5px;
+    color:var(--success);
+    background:var(--success-soft);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:16px;
+  }
+  .qw-confirm-banner.qw-warn{ color:var(--error); background:var(--error-soft); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+
+  .qw-hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="quiz-widget" id="qwRoot">
+
+  <!-- ===================== SKÆRM 1: NAVN/EMAIL ===================== -->
+  <div class="qw-body" id="qwScreenGate">
+    <img class="qw-logo qw-hidden" id="qwLogo" alt="Logo">
+    <p class="qw-eyebrow" id="qwEyebrow">Quiz</p>
+    <h1 class="qw-headline" id="qwHeadline">HVAD BETYDER ET MÅLTID?</h1>
+    <p class="qw-sub" id="qwSubheadline"></p>
+
+    <form id="qwGateForm" novalidate>
+      <div class="qw-field">
+        <label for="qwName">Navn</label>
+        <input type="text" id="qwName" name="name" autocomplete="given-name" placeholder="Dit navn">
+        <div class="qw-error-msg" id="qwNameError">Indtast dit navn for at fortsætte.</div>
+      </div>
+      <div class="qw-field">
+        <label for="qwEmail">E-mail</label>
+        <input type="email" id="qwEmail" name="email" autocomplete="email" placeholder="du@eksempel.dk">
+        <div class="qw-error-msg" id="qwEmailError">Indtast en gyldig e-mail for at fortsætte.</div>
+      </div>
+      <button type="submit" class="qw-btn" id="qwStartBtn">Tag quizzen her</button>
+      <p class="qw-fineprint">Ved at fortsætte accepterer du at modtage e-mails fra os. Du kan altid afmelde dig igen.</p>
+    </form>
+  </div>
+
+  <!-- ===================== SKÆRM 2: QUIZ ===================== -->
+  <div class="qw-body qw-hidden" id="qwScreenQuiz">
+    <div class="qw-progress" id="qwProgress"></div>
+    <p class="qw-qcount" id="qwQcount">Spørgsmål 1 af 4</p>
+    <p class="qw-context" id="qwContextText"></p>
+    <h2 class="qw-question" id="qwQuestionText"></h2>
+    <div class="qw-options" id="qwOptions"></div>
+    <div class="qw-explanation" id="qwExplanation"></div>
+    <button type="button" class="qw-btn" id="qwNextBtn" disabled>Næste</button>
+  </div>
+
+  <!-- ===================== SKÆRM 3: RESULTAT ===================== -->
+  <div class="qw-body qw-hidden" id="qwScreenResults">
+    <img class="qw-logo qw-hidden" id="qwLogoResults" alt="Logo">
+    <p class="qw-eyebrow">Dit resultat</p>
+    <h1 class="qw-headline">Godt gået!</h1>
+
+    <div class="qw-ticket-divider"></div>
+
+    <div class="qw-score-wrap">
+      <div class="qw-score-ring">
+        <svg viewBox="0 0 132 132">
+          <circle class="qw-track" cx="66" cy="66" r="56"></circle>
+          <circle class="qw-fill" id="qwScoreFill" cx="66" cy="66" r="56"></circle>
+        </svg>
+        <div class="qw-score-num">
+          <strong id="qwScoreNum">0/4</strong>
+          <span>korrekte</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="qw-result-tier" id="qwResultTier"></p>
+    <p class="qw-result-msg" id="qwResultMsg"></p>
+
+    <div id="qwConfirmBanner" class="qw-confirm-banner qw-hidden"></div>
+
+    <button type="button" class="qw-btn qw-btn-ghost" id="qwRetryBtn">Prøv igen</button>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================================
+   REDIGÉR CONFIG HER — alt det, man typisk vil tilpasse, ligger her.
+   ===================================================================== */
+const CONFIG = {
+
+  // ---- Branding ----
+  brandName: "KFUM's Sociale Arbejde",
+  logoUrl: "",              // fx "https://dinsite.dk/logo.png" — lad stå tom for at skjule logoet
+  eyebrow: "Quiz",
+  headline: "HVAD BETYDER ET MÅLTID?",
+  subheadline: "I Danmark er der mennesker, der ikke får et ordentligt måltid mad hver dag. Men hvad betyder måltidet egentligt for deres hverdag? Tag quizzen og bliv klogere på, hvilken forskel et måltid kan gøre.",
+
+  // ---- Farver (enhver gyldig CSS-farve) ----
+  colors: {
+    accent: "#E24326",
+    accentDark: "#B8341A",
+    accentSoft: "#FBE6E1",
+    ink: "#1A1A1A",
+    inkSoft: "#6B6B6E",
+    paper: "#FFFFFF",
+    card: "#FFFFFF",
+    line: "#E9E5E3",
+    success: "#16A34A",
+    successSoft: "#ECFDF3",
+    error: "#DC2626",
+    errorSoft: "#FEF2F2"
+  },
+
+  // ---- Spørgsmål (præcis 4, multiple choice, ét rigtigt svar hver) ----
+  // "context" er den korte tekst, der sætter scenen før selve spørgsmålet (kan udelades).
+  // "explanation" vises, når brugeren har svaret, uanset om svaret var rigtigt.
+  questions: [
+    {
+      context: "Mad er næring. Det er byggesten til dine celler, og uden mad kan du ikke overleve. I Danmark har vi et af verdens bedste velfærdssamfund. Alligevel er der mennesker i Danmark, der ikke får et ordentligt måltid mad hver dag.",
+      question: "Hvor mange mennesker i Danmark har ikke råd til et måltid, der indeholder kød, fisk eller et vegetarisk alternativ hver anden dag?",
+      options: ["180.000", "52.000", "Mindre end 20.000"],
+      correctIndex: 0,
+      explanation: "3,1% af befolkningen – eller det der svarer til 180.000 mennesker i Danmark – har ikke råd til et ordentligt måltid mad hver anden dag, viser tal for Den Europæiske Unions statistikbank, Eurostat. På vores 25 væresteder rundt i landet serverer vi varme måltider til overkommelige priser. På vores mere end 100 mobile væresteder, der kører ud til landets allermest udsatte, der ikke kan komme til værestederne, deler vi hver dag gratis måltider ud."
+    },
+    {
+      context: "Men mad er mere end næring. Det fodrer også din sjæl, når du spiser med andre. Undersøgelser viser, at socialt udsatte føler sig udelukkede af fællesskabet og mangler nære fællesskaber.",
+      question: "Hvor mange mennesker, der befinder sig en udsat livssituation, som fattigdom, ensomhed, psykisk sygdom eller misbrug, fortæller, at de ingen nære venner har?",
+      options: ["5 %", "10 %", "25 %"],
+      correctIndex: 2,
+      explanation: "Seneste tal fra VIVEs fælleskabsmåling (2021) viste, at 25% af de adspurgte svarede, at de ingen nære venner har. På vores sociale væresteder kommer vores gæster ofte igen. Og venskaber opstår. Som fx Bent Hansen og Finn Laursen, der har lært hinanden at kende i café Paraplyen i Odense. De mødes stort set hver dag i caféen, hvor de spiser et varmt måltid mad til frokost. Før Finn lærte Bent at kende, var han dybt ensom: \"Jeg har drukket, siden jeg var i militæret. Og da min kone døde for 12 år siden, ville jeg bare væk fra det hele,\" fortæller han."
+    },
+    {
+      context: "Når man føler sig ekskluderet fra omverden, bliver det endnu sværere at få hjælp. Forskning viser, at nogle mennesker, der befinder sig i en udsat livssituation, som fattigdom, ensomhed eller misbrug, trækker sig fra systemkontakt. De oplever ikke hjælpen som menneskelig eller hjælpsom. Derfor kører vi også ud med mad på vores mobile væresteder i madpakkeskure, parker med mere. Vi har lige nu mere end 100 mobile væresteder, og flere er på vej.",
+      question: "Hvor mange måltider har vi uddelt via vores mobile væresteder (Social Drive Out)?",
+      options: ["189.543 måltider", "219.345 måltider", "89.000 måltider"],
+      correctIndex: 1,
+      explanation: "Vores mobile væresteder kører ud med gratis mad. Indtil videre har vi uddelt 219.345 måltider. Nogle gange afleverer vi det personligt, andre gange må vi efterlade en pose mad på en trappesten. Men vi kommer igen. Og langsomt opstår der kontakt, og med tiden er det ikke kun mad, vi kan hjælpe med, men også hjælp til MitID, økonomisk rådgivning og en invitation til fællesskabet i nærmeste værested."
+    },
+    {
+      context: "",
+      question: "Hvad koster et måltid mad til én, der har brug for det, serveret i en varm, social café eller bragt til døren?",
+      options: ["10 kroner", "40 kroner", "75 kroner"],
+      correctIndex: 1,
+      explanation: "For 40 kroner kan du give et måltid mad. Nogle gange serverer vi den ved et bord, andre gange skal den køres ud og stilles på en kantsten. Men det er mere end mad. Det er en invitation ind i fællesskabet og tilbage til livet."
+    }
+  ],
+
+  // ---- Resultat-tekster pr. niveau (redigér frit) ----
+  resultTiers: [
+    { min: 4, title: "Perfekt score!",       message: "Du ved virkelig, hvad et måltid betyder." },
+    { min: 3, title: "Rigtig flot!",         message: "Kun ét forkert – du er godt inde i det." },
+    { min: 2, title: "Godt forsøgt!",        message: "Du er ved at få styr på det." },
+    { min: 0, title: "Tak, fordi du var med!", message: "Kom gerne tilbage og prøv igen." }
+  ],
+
+  // ---- Klaviyo ----
+  // Offentlig API-nøgle ("Site ID") — findes i Klaviyo under Settings > API Keys.
+  // Kan trygt bruges i browser-kode; det er IKKE din private nøgle.
+  klaviyo: {
+    publicApiKey: "VniszG",
+    listId: "UVGqEy"
+  }
+};
+
+/* =====================================================================
+   Herunder er selve widget-logikken — ingen grund til at redigere,
+   medmindre du vil ændre adfærden.
+   ===================================================================== */
+(function(){
+  // Anvend farver som CSS-variabler
+  const root = document.getElementById('qwRoot');
+  const c = CONFIG.colors;
+  root.style.setProperty('--accent', c.accent);
+  root.style.setProperty('--accent-dark', c.accentDark);
+  root.style.setProperty('--accent-soft', c.accentSoft);
+  root.style.setProperty('--ink', c.ink);
+  root.style.setProperty('--ink-soft', c.inkSoft);
+  root.style.setProperty('--paper', c.paper);
+  root.style.setProperty('--card', c.card);
+  root.style.setProperty('--line', c.line);
+  root.style.setProperty('--success', c.success);
+  root.style.setProperty('--success-soft', c.successSoft);
+  root.style.setProperty('--error', c.error);
+  root.style.setProperty('--error-soft', c.errorSoft);
+
+  // Anvend tekster
+  document.getElementById('qwEyebrow').textContent = CONFIG.eyebrow;
+  document.getElementById('qwHeadline').textContent = CONFIG.headline;
+  document.getElementById('qwSubheadline').textContent = CONFIG.subheadline;
+  document.title = CONFIG.brandName + " – Quiz";
+
+  if (CONFIG.logoUrl) {
+    [document.getElementById('qwLogo'), document.getElementById('qwLogoResults')].forEach(img => {
+      img.src = CONFIG.logoUrl;
+      img.classList.remove('qw-hidden');
+    });
+  }
+
+  // Skærme
+  const screenGate = document.getElementById('qwScreenGate');
+  const screenQuiz = document.getElementById('qwScreenQuiz');
+  const screenResults = document.getElementById('qwScreenResults');
+
+  function showScreen(el){
+    [screenGate, screenQuiz, screenResults].forEach(s => s.classList.add('qw-hidden'));
+    el.classList.remove('qw-hidden');
+  }
+
+  // ---------------- GTM / dataLayer tracking ----------------
+  // Pushes to this document's own dataLayer AND to the parent page's dataLayer
+  // (the widget normally runs inside a same-origin iframe on the TYPO3 site,
+  // where GTM is installed on the parent page, not inside the iframe).
+  // No PII (name/email) is included by design — keep it that way unless you
+  // specifically need it and have checked this against your privacy policy.
+  function qwTrack(eventName, data){
+    const payload = Object.assign({ event: eventName }, data || {});
+    try {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push(payload);
+    } catch(e) {}
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.dataLayer = window.parent.dataLayer || [];
+        window.parent.dataLayer.push(payload);
+      }
+    } catch(e) {
+      // parent is cross-origin (widget hosted on a different domain than the
+      // embedding page) — can't reach its dataLayer from here, fails silently.
+    }
+  }
+
+  // ---------------- Gate-formular ----------------
+  const gateForm = document.getElementById('qwGateForm');
+  const nameInput = document.getElementById('qwName');
+  const emailInput = document.getElementById('qwEmail');
+  const nameError = document.getElementById('qwNameError');
+  const emailError = document.getElementById('qwEmailError');
+  const startBtn = document.getElementById('qwStartBtn');
+
+  function isValidEmail(v){
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  gateForm.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    let valid = true;
+
+    if (!name) { nameError.classList.add('show'); valid = false; } else { nameError.classList.remove('show'); }
+    if (!isValidEmail(email)) { emailError.classList.add('show'); valid = false; } else { emailError.classList.remove('show'); }
+    if (!valid) return;
+
+    startBtn.disabled = true;
+    startBtn.textContent = "Starter…";
+
+    await subscribeToKlaviyo(name, email);
+
+    startBtn.disabled = false;
+    startBtn.textContent = "Tag quizzen her";
+
+    qwTrack('quiz_lead_submitted', { klaviyo_subscribed: klaviyoResult.ok === true });
+
+    startQuiz();
+  });
+
+  // ---------------- Klaviyo-tilmelding ----------------
+  let klaviyoResult = { ok: null, message: "" };
+
+  async function subscribeToKlaviyo(name, email){
+    const { publicApiKey, listId } = CONFIG.klaviyo;
+    if (!publicApiKey || publicApiKey === "YOUR_PUBLIC_API_KEY" || !listId || listId === "YOUR_LIST_ID") {
+      klaviyoResult = { ok: false, message: "Klaviyo er ikke konfigureret endnu — tilføj din offentlige API-nøgle og liste-ID i CONFIG." };
+      return;
+    }
+    try {
+      const res = await fetch(`https://a.klaviyo.com/client/subscriptions/?company_id=${encodeURIComponent(publicApiKey)}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "revision": "2024-10-15"
+        },
+        body: JSON.stringify({
+          data: {
+            type: "subscription",
+            attributes: {
+              profile: {
+                data: {
+                  type: "profile",
+                  attributes: {
+                    email: email,
+                    first_name: name,
+                    properties: {
+                      "$source": "Quiz"
+                    },
+                    subscriptions: {
+                      email: { marketing: { consent: "SUBSCRIBED" } }
+                    }
+                  }
+                }
+              }
+            },
+            relationships: {
+              list: { data: { type: "list", id: listId } }
+            }
+          }
+        })
+      });
+      // Klaviyos client-subscription endpoint returnerer 202 ved succes uden body.
+      if (res.status === 202 || res.ok) {
+        klaviyoResult = { ok: true, message: "Du er tilmeldt — tjek din indbakke snart." };
+      } else {
+        klaviyoResult = { ok: false, message: "Vi kunne ikke bekræfte din tilmelding, men her er dine resultater." };
+      }
+    } catch (err) {
+      klaviyoResult = { ok: false, message: "Vi kunne ikke oprette forbindelse til vores tilmeldingsservice, men her er dine resultater." };
+    }
+  }
+
+  // ---------------- Quiz-logik ----------------
+  const progressEl = document.getElementById('qwProgress');
+  const qcountEl = document.getElementById('qwQcount');
+  const contextEl = document.getElementById('qwContextText');
+  const questionTextEl = document.getElementById('qwQuestionText');
+  const optionsEl = document.getElementById('qwOptions');
+  const explanationEl = document.getElementById('qwExplanation');
+  const nextBtn = document.getElementById('qwNextBtn');
+
+  let currentIndex = 0;
+  let score = 0;
+  let answeredCurrent = false;
+
+  // Byg fremdrifts-segmenter
+  CONFIG.questions.forEach(() => {
+    const i = document.createElement('i');
+    i.innerHTML = '<span></span>';
+    progressEl.appendChild(i);
+  });
+
+  function startQuiz(){
+    currentIndex = 0;
+    score = 0;
+    showScreen(screenQuiz);
+    renderQuestion();
+  }
+
+  function updateProgress(){
+    const segments = progressEl.children;
+    for (let i = 0; i < segments.length; i++){
+      segments[i].classList.remove('qw-done', 'qw-active');
+      if (i < currentIndex) segments[i].classList.add('qw-done');
+      else if (i === currentIndex) segments[i].classList.add('qw-active');
+    }
+  }
+
+  function renderQuestion(){
+    answeredCurrent = false;
+    nextBtn.disabled = true;
+    nextBtn.textContent = currentIndex === CONFIG.questions.length - 1 ? "Se resultat" : "Næste";
+    updateProgress();
+
+    const q = CONFIG.questions[currentIndex];
+    qcountEl.textContent = `Spørgsmål ${currentIndex + 1} af ${CONFIG.questions.length}`;
+    if (q.context) {
+      contextEl.textContent = q.context;
+      contextEl.style.display = "";
+    } else {
+      contextEl.style.display = "none";
+    }
+    questionTextEl.textContent = q.question;
+    optionsEl.innerHTML = "";
+    explanationEl.classList.remove('show');
+    explanationEl.textContent = "";
+
+    const letters = ["A", "B", "C", "D", "E", "F"];
+    q.options.forEach((optText, i) => {
+      const btn = document.createElement('button');
+      btn.type = "button";
+      btn.className = "qw-option";
+      btn.innerHTML = `<span class="qw-chip">${letters[i]}</span><span>${optText}</span>`;
+      btn.addEventListener('click', () => selectOption(i, btn));
+      optionsEl.appendChild(btn);
+    });
+  }
+
+  function selectOption(selectedIndex){
+    if (answeredCurrent) return;
+    answeredCurrent = true;
+    const q = CONFIG.questions[currentIndex];
+    const isCorrect = selectedIndex === q.correctIndex;
+    if (isCorrect) score++;
+
+    Array.from(optionsEl.children).forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === q.correctIndex) btn.classList.add('correct');
+      else if (i === selectedIndex) btn.classList.add('incorrect');
+      else btn.classList.add('dim');
+    });
+
+    if (q.explanation) {
+      explanationEl.innerHTML = `<strong>${isCorrect ? "Rigtigt! " : "Ikke helt. "}</strong>${q.explanation}`;
+      explanationEl.classList.add('show');
+    }
+
+    qwTrack('quiz_question_answered', {
+      question_number: currentIndex + 1,
+      question_correct: isCorrect
+    });
+
+    nextBtn.disabled = false;
+  }
+
+  nextBtn.addEventListener('click', () => {
+    if (currentIndex < CONFIG.questions.length - 1) {
+      currentIndex++;
+      renderQuestion();
+    } else {
+      showResults();
+    }
+  });
+
+  // ---------------- Resultat ----------------
+  const scoreFill = document.getElementById('qwScoreFill');
+  const scoreNum = document.getElementById('qwScoreNum');
+  const resultTier = document.getElementById('qwResultTier');
+  const resultMsg = document.getElementById('qwResultMsg');
+  const confirmBanner = document.getElementById('qwConfirmBanner');
+  const retryBtn = document.getElementById('qwRetryBtn');
+
+  function showResults(){
+    showScreen(screenResults);
+    const total = CONFIG.questions.length;
+    scoreNum.textContent = `${score}/${total}`;
+
+    const circumference = 352; // 2 * PI * r(56), matcher CSS
+    const offset = circumference - (circumference * (score / total));
+    requestAnimationFrame(() => { scoreFill.style.strokeDashoffset = offset; });
+
+    const tier = CONFIG.resultTiers.find(t => score >= t.min) || CONFIG.resultTiers[CONFIG.resultTiers.length - 1];
+    resultTier.textContent = tier.title;
+    resultMsg.textContent = tier.message;
+
+    if (klaviyoResult.ok === true) {
+      confirmBanner.textContent = klaviyoResult.message;
+      confirmBanner.classList.remove('qw-hidden', 'qw-warn');
+    } else if (klaviyoResult.ok === false) {
+      confirmBanner.textContent = klaviyoResult.message;
+      confirmBanner.classList.remove('qw-hidden');
+      confirmBanner.classList.add('qw-warn');
+    }
+
+    qwTrack('quiz_completed', { quiz_score: score, quiz_total: total });
+  }
+
+  retryBtn.addEventListener('click', () => {
+    scoreFill.style.strokeDashoffset = 352;
+    startQuiz();
+  });
+
+})();
+</script>
+
+</body>
+</html>
