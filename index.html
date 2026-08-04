@@ -367,7 +367,7 @@
     text-align:center;
     margin:0 0 18px;
   }
-  .qw-donation-embed{ min-height: 1px; }
+  .qw-donation-embed{ min-height: 1px; margin-top:16px; }
 
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
@@ -443,7 +443,10 @@
     <div class="qw-donation">
       <p class="qw-donation-title" id="qwDonationTitle">Vil du være med til at gøre en forskel?</p>
       <p class="qw-donation-text" id="qwDonationText">Som du netop har set, er et varmt og nærende måltid ikke en selvfølge for alle i Danmark. Giv et måltid – serveret med nærvær og omsorg.</p>
-      <div class="qw-donation-embed" id="fund" data-of="onlinefundraising.dk/kfumsoc" data-form="2207"></div>
+      <button type="button" class="qw-btn" id="qwDonationBtn">Gør en forskel</button>
+      <div class="qw-donation-embed qw-hidden" id="qwDonationEmbedWrap">
+        <div id="fund" data-of="onlinefundraising.dk/kfumsoc" data-form="2207"></div>
+      </div>
     </div>
 
     <p class="qw-fineprint qw-hidden" id="qwRedirectMsg"></p>
@@ -874,11 +877,22 @@ const CONFIG = {
   }
 
   // ---------------- Donations-embed (onlinefundraising.dk) ----------------
-  // Indlæses først, når resultatsiden faktisk vises — ikke ved page load —
-  // fordi embeddet ligger inde i en skjult (display:none) sektion indtil da,
-  // og en del tredjeparts-widgets måler forkert/renderer forkert, hvis de
-  // initialiseres inde i et skjult element.
+  // Indlæses først, når brugeren klikker på "Gør en forskel" — ikke automatisk
+  // ved resultatvisning — dels fordi det var ønsket, dels fordi embeddet
+  // ligger i en skjult (display:none) sektion indtil da, og en del
+  // tredjeparts-widgets måler forkert/renderer forkert, hvis de initialiseres
+  // inde i et skjult element.
+  const donationBtn = document.getElementById('qwDonationBtn');
+  const donationEmbedWrap = document.getElementById('qwDonationEmbedWrap');
   let donationEmbedLoaded = false;
+
+  donationBtn.addEventListener('click', () => {
+    donationEmbedWrap.classList.remove('qw-hidden');
+    donationBtn.classList.add('qw-hidden');
+    loadDonationEmbed();
+    qwTrack('quiz_donation_cta_clicked', {});
+  });
+
   function loadDonationEmbed(){
     if (donationEmbedLoaded) return;
     const el = document.getElementById('fund');
@@ -916,8 +930,6 @@ const CONFIG = {
 
     qwTrack('quiz_completed', { quiz_score: score, quiz_total: total });
 
-    loadDonationEmbed();
-
     if (CONFIG.resultsRedirect.enabled && CONFIG.resultsRedirect.url) {
       startRedirectCountdown(total);
     }
@@ -927,6 +939,8 @@ const CONFIG = {
     if (redirectTimer) { clearInterval(redirectTimer); redirectTimer = null; }
     redirectMsg.classList.add('qw-hidden');
     redirectBtn.classList.add('qw-hidden');
+    donationEmbedWrap.classList.add('qw-hidden');
+    donationBtn.classList.remove('qw-hidden');
     scoreFill.style.strokeDashoffset = 352;
     startQuiz();
   });
