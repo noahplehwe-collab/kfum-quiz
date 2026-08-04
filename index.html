@@ -347,6 +347,28 @@
   }
   .qw-confirm-banner.qw-warn{ color:var(--error); background:var(--error-soft); }
 
+  .qw-donation{
+    margin-top:24px;
+    padding-top:22px;
+    border-top:1px solid var(--line);
+  }
+  .qw-donation-title{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:18px;
+    font-weight:700;
+    text-align:center;
+    margin:0 0 8px;
+    color:var(--ink);
+  }
+  .qw-donation-text{
+    font-size:14px;
+    line-height:1.55;
+    color:var(--ink-soft);
+    text-align:center;
+    margin:0 0 18px;
+  }
+  .qw-donation-embed{ min-height: 1px; }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
   }
@@ -417,6 +439,12 @@
     <p class="qw-result-msg" id="qwResultMsg"></p>
 
     <div id="qwConfirmBanner" class="qw-confirm-banner qw-hidden"></div>
+
+    <div class="qw-donation">
+      <p class="qw-donation-title" id="qwDonationTitle">Vil du være med til at gøre en forskel?</p>
+      <p class="qw-donation-text" id="qwDonationText">Som du netop har set, er et varmt og nærende måltid ikke en selvfølge for alle i Danmark. Giv et måltid – serveret med nærvær og omsorg.</p>
+      <div class="qw-donation-embed" id="fund" data-of="onlinefundraising.dk/kfumsoc" data-form="2207"></div>
+    </div>
 
     <p class="qw-fineprint qw-hidden" id="qwRedirectMsg"></p>
     <button type="button" class="qw-btn qw-hidden" id="qwRedirectBtn">Fortsæt nu</button>
@@ -496,12 +524,17 @@ const CONFIG = {
     { min: 0, title: "Tak, fordi du var med!", message: "Kom gerne tilbage og prøv igen." }
   ],
 
+  // ---- Donationsopfordring på resultatsiden ----
+  donationAppeal: {
+    title: "Vil du være med til at gøre en forskel?",
+    text: "Som du netop har set, er et varmt og nærende måltid ikke en selvfølge for alle i Danmark. Giv et måltid – serveret med nærvær og omsorg."
+  },
+
   // ---- Videresend til en anden side efter quizzen ----
-  // Brug dette, hvis resultatet + en donationsformular skal vises på en
-  // anden side (fx en TYPO3-side med jeres donations-embed), i stedet for
-  // at vise resultatet her i widgetten.
-  // Sæt enabled: true og udfyld url for at aktivere. Scoren sendes med som
-  // ?score=X&total=Y i URL'en, så den nye side kan læse og vise den.
+  // Ikke i brug lige nu — resultatet og donationsopfordringen vises i stedet
+  // direkte i widgetten (se donationAppeal ovenfor). Lad enabled stå på
+  // false. Kan aktiveres senere, hvis I hellere vil sende folk videre til en
+  // separat side i stedet for at vise donationsformularen her.
   resultsRedirect: {
     enabled: false,
     url: "",              // fx "https://kfum.dk/tak-for-du-deltog"
@@ -542,6 +575,8 @@ const CONFIG = {
   document.getElementById('qwEyebrow').textContent = CONFIG.eyebrow;
   document.getElementById('qwHeadline').textContent = CONFIG.headline;
   document.getElementById('qwSubheadline').textContent = CONFIG.subheadline;
+  document.getElementById('qwDonationTitle').textContent = CONFIG.donationAppeal.title;
+  document.getElementById('qwDonationText').textContent = CONFIG.donationAppeal.text;
   document.title = CONFIG.brandName + " – Quiz";
 
   if (CONFIG.logoUrl) {
@@ -838,6 +873,25 @@ const CONFIG = {
     }
   }
 
+  // ---------------- Donations-embed (onlinefundraising.dk) ----------------
+  // Indlæses først, når resultatsiden faktisk vises — ikke ved page load —
+  // fordi embeddet ligger inde i en skjult (display:none) sektion indtil da,
+  // og en del tredjeparts-widgets måler forkert/renderer forkert, hvis de
+  // initialiseres inde i et skjult element.
+  let donationEmbedLoaded = false;
+  function loadDonationEmbed(){
+    if (donationEmbedLoaded) return;
+    const el = document.getElementById('fund');
+    if (!el) return;
+    const s = document.createElement('script');
+    s.type = 'text/javascript';
+    s.async = true;
+    s.src = 'https://onlinefundraising.dk/js/3.8/iframe.js';
+    const x = document.getElementsByTagName('script')[0];
+    x.parentNode.insertBefore(s, x);
+    donationEmbedLoaded = true;
+  }
+
   function showResults(){
     showScreen(screenResults);
     const total = CONFIG.questions.length;
@@ -861,6 +915,8 @@ const CONFIG = {
     }
 
     qwTrack('quiz_completed', { quiz_score: score, quiz_total: total });
+
+    loadDonationEmbed();
 
     if (CONFIG.resultsRedirect.enabled && CONFIG.resultsRedirect.url) {
       startRedirectCountdown(total);
