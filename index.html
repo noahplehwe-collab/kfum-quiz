@@ -458,7 +458,7 @@
       <p class="qw-donation-title" id="qwDonationTitle">Vil du være med til at gøre en forskel?</p>
       <p class="qw-donation-text" id="qwDonationText">Som du netop har set, er et varmt og nærende måltid ikke en selvfølge for alle i Danmark. Giv et måltid – serveret med nærvær og omsorg.</p>
       <div class="qw-donation-embed" id="qwDonationEmbedWrap">
-        <div id="fund" data-of="onlinefundraising.dk/kfumsoc" data-form="2207"></div>
+        <div id="fund" data-of="onlinefundraising.dk/kfumsoc" data-form="2216"></div>
       </div>
     </div>
 
@@ -934,6 +934,14 @@ const CONFIG = {
     const x = document.getElementsByTagName('script')[0];
     x.parentNode.insertBefore(s, x);
     donationEmbedLoaded = true;
+
+    // Donationsformularen fra onlinefundraising.dk ser ud til at auto-fokusere
+    // et felt, når den er indlæst, hvilket får browseren til at scrolle ned i
+    // widgettens egen iframe og skjule resultatet i toppen. Tving scroll
+    // tilbage til toppen et par gange, mens formularen initialiserer.
+    [300, 800, 1500].forEach(delay => {
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'auto' }), delay);
+    });
   }
 
   function showResults(){
