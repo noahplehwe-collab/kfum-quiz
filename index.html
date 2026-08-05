@@ -381,27 +381,13 @@
 
 <div class="quiz-widget" id="qwRoot">
 
-  <!-- ===================== SKÆRM 1: NAVN/EMAIL ===================== -->
+  <!-- ===================== SKÆRM 1: INTRO ===================== -->
   <div class="qw-body" id="qwScreenGate">
     <img class="qw-logo qw-hidden" id="qwLogo" alt="Logo">
     <p class="qw-eyebrow" id="qwEyebrow">Quiz</p>
     <h1 class="qw-headline" id="qwHeadline">HVAD BETYDER ET MÅLTID?</h1>
     <p class="qw-sub" id="qwSubheadline"></p>
-
-    <form id="qwGateForm" novalidate>
-      <div class="qw-field">
-        <label for="qwName">Navn</label>
-        <input type="text" id="qwName" name="name" autocomplete="given-name" placeholder="Dit navn">
-        <div class="qw-error-msg" id="qwNameError">Indtast dit navn for at fortsætte.</div>
-      </div>
-      <div class="qw-field">
-        <label for="qwEmail">E-mail</label>
-        <input type="email" id="qwEmail" name="email" autocomplete="email" placeholder="du@eksempel.dk">
-        <div class="qw-error-msg" id="qwEmailError">Indtast en gyldig e-mail for at fortsætte.</div>
-      </div>
-      <button type="submit" class="qw-btn" id="qwStartBtn">Tag quizzen her</button>
-      <p class="qw-fineprint">Ved at fortsætte accepterer du at modtage e-mails fra os. Du kan altid afmelde dig igen.</p>
-    </form>
+    <button type="button" class="qw-btn" id="qwStartBtn">Tag quizzen her</button>
   </div>
 
   <!-- ===================== SKÆRM 2: QUIZ ===================== -->
@@ -415,7 +401,34 @@
     <button type="button" class="qw-btn" id="qwNextBtn" disabled>Næste</button>
   </div>
 
-  <!-- ===================== SKÆRM 3: RESULTAT ===================== -->
+  <!-- ===================== SKÆRM 3: NAVN/EMAIL/TELEFON (efter sidste spørgsmål) ===================== -->
+  <div class="qw-body qw-hidden" id="qwScreenLead">
+    <p class="qw-eyebrow">Næsten der</p>
+    <h1 class="qw-headline">Se dit resultat</h1>
+    <p class="qw-sub">Udfyld dine oplysninger, så viser vi dig, hvor mange du fik rigtige.</p>
+
+    <form id="qwLeadForm" novalidate>
+      <div class="qw-field">
+        <label for="qwName">Navn</label>
+        <input type="text" id="qwName" name="name" autocomplete="given-name" placeholder="Dit navn">
+        <div class="qw-error-msg" id="qwNameError">Indtast dit navn for at fortsætte.</div>
+      </div>
+      <div class="qw-field">
+        <label for="qwEmail">E-mail</label>
+        <input type="email" id="qwEmail" name="email" autocomplete="email" placeholder="du@eksempel.dk">
+        <div class="qw-error-msg" id="qwEmailError">Indtast en gyldig e-mail for at fortsætte.</div>
+      </div>
+      <div class="qw-field">
+        <label for="qwPhone">Telefon</label>
+        <input type="tel" id="qwPhone" name="phone" autocomplete="tel" placeholder="12 34 56 78">
+        <div class="qw-error-msg" id="qwPhoneError">Indtast et gyldigt telefonnummer for at fortsætte.</div>
+      </div>
+      <button type="submit" class="qw-btn" id="qwLeadSubmitBtn">Se resultat</button>
+      <p class="qw-fineprint">Ved at fortsætte accepterer du at modtage e-mails fra os. Du kan altid afmelde dig igen.</p>
+    </form>
+  </div>
+
+  <!-- ===================== SKÆRM 4: RESULTAT ===================== -->
   <div class="qw-body qw-hidden" id="qwScreenResults">
     <img class="qw-logo qw-hidden" id="qwLogoResults" alt="Logo">
     <p class="qw-eyebrow">Dit resultat</p>
@@ -444,8 +457,7 @@
     <div class="qw-donation">
       <p class="qw-donation-title" id="qwDonationTitle">Vil du være med til at gøre en forskel?</p>
       <p class="qw-donation-text" id="qwDonationText">Som du netop har set, er et varmt og nærende måltid ikke en selvfølge for alle i Danmark. Giv et måltid – serveret med nærvær og omsorg.</p>
-      <button type="button" class="qw-btn" id="qwDonationBtn">Gør en forskel</button>
-      <div class="qw-donation-embed qw-hidden" id="qwDonationEmbedWrap">
+      <div class="qw-donation-embed" id="qwDonationEmbedWrap">
         <div id="fund" data-of="onlinefundraising.dk/kfumsoc" data-form="2207"></div>
       </div>
     </div>
@@ -593,10 +605,11 @@ const CONFIG = {
   // Skærme
   const screenGate = document.getElementById('qwScreenGate');
   const screenQuiz = document.getElementById('qwScreenQuiz');
+  const screenLead = document.getElementById('qwScreenLead');
   const screenResults = document.getElementById('qwScreenResults');
 
   function showScreen(el){
-    [screenGate, screenQuiz, screenResults].forEach(s => s.classList.add('qw-hidden'));
+    [screenGate, screenQuiz, screenLead, screenResults].forEach(s => s.classList.add('qw-hidden'));
     el.classList.remove('qw-hidden');
   }
 
@@ -623,49 +636,72 @@ const CONFIG = {
     }
   }
 
-  // ---------------- Gate-formular ----------------
-  const gateForm = document.getElementById('qwGateForm');
+  // ---------------- Intro: "Start quiz"-knap ----------------
+  const startBtn = document.getElementById('qwStartBtn');
+  startBtn.addEventListener('click', () => {
+    startQuiz();
+  });
+
+  // ---------------- Lead-formular (navn/e-mail/telefon, vises efter sidste spørgsmål) ----------------
+  const leadForm = document.getElementById('qwLeadForm');
   const nameInput = document.getElementById('qwName');
   const emailInput = document.getElementById('qwEmail');
+  const phoneInput = document.getElementById('qwPhone');
   const nameError = document.getElementById('qwNameError');
   const emailError = document.getElementById('qwEmailError');
-  const startBtn = document.getElementById('qwStartBtn');
+  const phoneError = document.getElementById('qwPhoneError');
+  const leadSubmitBtn = document.getElementById('qwLeadSubmitBtn');
+
+  let leadCaptured = false; // sandt, når info er indsamlet én gang (springes over ved "prøv igen")
 
   function isValidEmail(v){
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
   }
+  function isValidPhone(v){
+    const digits = v.replace(/[^\d]/g, '');
+    return digits.length >= 8;
+  }
 
-  gateForm.addEventListener('submit', async function(e){
+  leadForm.addEventListener('submit', async function(e){
     e.preventDefault();
     const name = nameInput.value.trim();
     const email = emailInput.value.trim();
+    const phone = phoneInput.value.trim();
     let valid = true;
 
     if (!name) { nameError.classList.add('show'); valid = false; } else { nameError.classList.remove('show'); }
     if (!isValidEmail(email)) { emailError.classList.add('show'); valid = false; } else { emailError.classList.remove('show'); }
+    if (!isValidPhone(phone)) { phoneError.classList.add('show'); valid = false; } else { phoneError.classList.remove('show'); }
     if (!valid) return;
 
-    startBtn.disabled = true;
-    startBtn.textContent = "Starter…";
+    leadSubmitBtn.disabled = true;
+    leadSubmitBtn.textContent = "Sender…";
 
-    await subscribeToKlaviyo(name, email);
+    await subscribeToKlaviyo(name, email, phone);
 
-    startBtn.disabled = false;
-    startBtn.textContent = "Tag quizzen her";
+    leadSubmitBtn.disabled = false;
+    leadSubmitBtn.textContent = "Se resultat";
 
+    leadCaptured = true;
     qwTrack('quiz_lead_submitted', { klaviyo_subscribed: klaviyoResult.ok === true });
 
-    startQuiz();
+    showResults();
   });
 
   // ---------------- Klaviyo-tilmelding ----------------
   let klaviyoResult = { ok: null, message: "" };
 
-  async function subscribeToKlaviyo(name, email){
+  async function subscribeToKlaviyo(name, email, phone){
     const { publicApiKey, listId } = CONFIG.klaviyo;
     if (!publicApiKey || publicApiKey === "YOUR_PUBLIC_API_KEY" || !listId || listId === "YOUR_LIST_ID") {
       klaviyoResult = { ok: false, message: "Klaviyo er ikke konfigureret endnu — tilføj din offentlige API-nøgle og liste-ID i CONFIG." };
       return;
+    }
+    // Klaviyo forventer telefonnumre i E.164-format (fx +4512345678).
+    // Antager dansk mobilnummer, hvis der ikke allerede er landekode.
+    let normalizedPhone = (phone || "").replace(/[^\d+]/g, '');
+    if (normalizedPhone && !normalizedPhone.startsWith('+')) {
+      normalizedPhone = '+45' + normalizedPhone;
     }
     try {
       const res = await fetch(`https://a.klaviyo.com/client/subscriptions/?company_id=${encodeURIComponent(publicApiKey)}`, {
@@ -683,6 +719,7 @@ const CONFIG = {
                   type: "profile",
                   attributes: {
                     email: email,
+                    phone_number: normalizedPhone || undefined,
                     first_name: name,
                     properties: {
                       "Kontaktlead - Måltid - Quiz": true
@@ -814,8 +851,10 @@ const CONFIG = {
     if (currentIndex < CONFIG.questions.length - 1) {
       currentIndex++;
       renderQuestion();
-    } else {
+    } else if (leadCaptured) {
       showResults();
+    } else {
+      showScreen(screenLead);
     }
   });
 
@@ -878,21 +917,11 @@ const CONFIG = {
   }
 
   // ---------------- Donations-embed (onlinefundraising.dk) ----------------
-  // Indlæses først, når brugeren klikker på "Gør en forskel" — ikke automatisk
-  // ved resultatvisning — dels fordi det var ønsket, dels fordi embeddet
-  // ligger i en skjult (display:none) sektion indtil da, og en del
-  // tredjeparts-widgets måler forkert/renderer forkert, hvis de initialiseres
-  // inde i et skjult element.
-  const donationBtn = document.getElementById('qwDonationBtn');
-  const donationEmbedWrap = document.getElementById('qwDonationEmbedWrap');
+  // Indlæses automatisk, når resultatsiden vises — ikke ved page load —
+  // fordi embeddet ellers ligger i en skjult (display:none) sektion, og en
+  // del tredjeparts-widgets måler forkert/renderer forkert, hvis de
+  // initialiseres inde i et skjult element.
   let donationEmbedLoaded = false;
-
-  donationBtn.addEventListener('click', () => {
-    donationEmbedWrap.classList.remove('qw-hidden');
-    donationBtn.classList.add('qw-hidden');
-    loadDonationEmbed();
-    qwTrack('quiz_donation_cta_clicked', {});
-  });
 
   function loadDonationEmbed(){
     if (donationEmbedLoaded) return;
@@ -931,6 +960,8 @@ const CONFIG = {
 
     qwTrack('quiz_completed', { quiz_score: score, quiz_total: total });
 
+    loadDonationEmbed();
+
     if (CONFIG.resultsRedirect.enabled && CONFIG.resultsRedirect.url) {
       startRedirectCountdown(total);
     }
@@ -940,8 +971,6 @@ const CONFIG = {
     if (redirectTimer) { clearInterval(redirectTimer); redirectTimer = null; }
     redirectMsg.classList.add('qw-hidden');
     redirectBtn.classList.add('qw-hidden');
-    donationEmbedWrap.classList.add('qw-hidden');
-    donationBtn.classList.remove('qw-hidden');
     scoreFill.style.strokeDashoffset = 352;
     startQuiz();
   });
