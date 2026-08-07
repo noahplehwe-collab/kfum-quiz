@@ -405,7 +405,7 @@
         <div class="qw-error-msg" id="qwPhoneError">Indtast et gyldigt telefonnummer for at fortsætte.</div>
       </div>
       <button type="submit" class="qw-btn" id="qwLeadSubmitBtn">Tag quizzen her</button>
-      <p class="qw-fineprint">Ved at fortsætte accepterer du at modtage e-mails fra os. Du kan altid afmelde dig igen.</p>
+      <p class="qw-fineprint">Ved at fortsætte accepterer du at modtage e-mails og sms'er fra os. Du kan altid afmelde dig igen.</p>
     </form>
   </div>
 
@@ -707,7 +707,8 @@ const CONFIG = {
                       "Kontaktlead - Måltid - Quiz": true
                     },
                     subscriptions: {
-                      email: { marketing: { consent: "SUBSCRIBED" } }
+                      email: { marketing: { consent: "SUBSCRIBED" } },
+                      sms: { marketing: { consent: "SUBSCRIBED" } }
                     }
                   }
                 }
