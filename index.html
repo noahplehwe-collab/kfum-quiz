@@ -381,31 +381,12 @@
 
 <div class="quiz-widget" id="qwRoot">
 
-  <!-- ===================== SKÆRM 1: INTRO ===================== -->
+  <!-- ===================== SKÆRM 1: INTRO + NAVN/EMAIL/TELEFON ===================== -->
   <div class="qw-body" id="qwScreenGate">
     <img class="qw-logo qw-hidden" id="qwLogo" alt="Logo">
     <p class="qw-eyebrow" id="qwEyebrow">Quiz</p>
     <h1 class="qw-headline" id="qwHeadline">HVAD BETYDER ET MÅLTID?</h1>
     <p class="qw-sub" id="qwSubheadline"></p>
-    <button type="button" class="qw-btn" id="qwStartBtn">Tag quizzen her</button>
-  </div>
-
-  <!-- ===================== SKÆRM 2: QUIZ ===================== -->
-  <div class="qw-body qw-hidden" id="qwScreenQuiz">
-    <div class="qw-progress" id="qwProgress"></div>
-    <p class="qw-qcount" id="qwQcount">Spørgsmål 1 af 4</p>
-    <p class="qw-context" id="qwContextText"></p>
-    <h2 class="qw-question" id="qwQuestionText"></h2>
-    <div class="qw-options" id="qwOptions"></div>
-    <div class="qw-explanation" id="qwExplanation"></div>
-    <button type="button" class="qw-btn" id="qwNextBtn" disabled>Næste</button>
-  </div>
-
-  <!-- ===================== SKÆRM 3: NAVN/EMAIL/TELEFON (efter sidste spørgsmål) ===================== -->
-  <div class="qw-body qw-hidden" id="qwScreenLead">
-    <p class="qw-eyebrow">Næsten der</p>
-    <h1 class="qw-headline">Se dit resultat</h1>
-    <p class="qw-sub">Udfyld dine oplysninger, så viser vi dig, hvor mange du fik rigtige.</p>
 
     <form id="qwLeadForm" novalidate>
       <div class="qw-field">
@@ -423,12 +404,23 @@
         <input type="tel" id="qwPhone" name="phone" autocomplete="tel" placeholder="12 34 56 78">
         <div class="qw-error-msg" id="qwPhoneError">Indtast et gyldigt telefonnummer for at fortsætte.</div>
       </div>
-      <button type="submit" class="qw-btn" id="qwLeadSubmitBtn">Se resultat</button>
+      <button type="submit" class="qw-btn" id="qwLeadSubmitBtn">Tag quizzen her</button>
       <p class="qw-fineprint">Ved at fortsætte accepterer du at modtage e-mails fra os. Du kan altid afmelde dig igen.</p>
     </form>
   </div>
 
-  <!-- ===================== SKÆRM 4: RESULTAT ===================== -->
+  <!-- ===================== SKÆRM 2: QUIZ ===================== -->
+  <div class="qw-body qw-hidden" id="qwScreenQuiz">
+    <div class="qw-progress" id="qwProgress"></div>
+    <p class="qw-qcount" id="qwQcount">Spørgsmål 1 af 4</p>
+    <p class="qw-context" id="qwContextText"></p>
+    <h2 class="qw-question" id="qwQuestionText"></h2>
+    <div class="qw-options" id="qwOptions"></div>
+    <div class="qw-explanation" id="qwExplanation"></div>
+    <button type="button" class="qw-btn" id="qwNextBtn" disabled>Næste</button>
+  </div>
+
+  <!-- ===================== SKÆRM 3: RESULTAT ===================== -->
   <div class="qw-body qw-hidden" id="qwScreenResults">
     <img class="qw-logo qw-hidden" id="qwLogoResults" alt="Logo">
     <p class="qw-eyebrow">Dit resultat</p>
@@ -605,11 +597,10 @@ const CONFIG = {
   // Skærme
   const screenGate = document.getElementById('qwScreenGate');
   const screenQuiz = document.getElementById('qwScreenQuiz');
-  const screenLead = document.getElementById('qwScreenLead');
   const screenResults = document.getElementById('qwScreenResults');
 
   function showScreen(el){
-    [screenGate, screenQuiz, screenLead, screenResults].forEach(s => s.classList.add('qw-hidden'));
+    [screenGate, screenQuiz, screenResults].forEach(s => s.classList.add('qw-hidden'));
     el.classList.remove('qw-hidden');
   }
 
@@ -636,13 +627,7 @@ const CONFIG = {
     }
   }
 
-  // ---------------- Intro: "Start quiz"-knap ----------------
-  const startBtn = document.getElementById('qwStartBtn');
-  startBtn.addEventListener('click', () => {
-    startQuiz();
-  });
-
-  // ---------------- Lead-formular (navn/e-mail/telefon, vises efter sidste spørgsmål) ----------------
+  // ---------------- Lead-formular (navn/e-mail/telefon, vises før quizzen starter) ----------------
   const leadForm = document.getElementById('qwLeadForm');
   const nameInput = document.getElementById('qwName');
   const emailInput = document.getElementById('qwEmail');
@@ -651,8 +636,6 @@ const CONFIG = {
   const emailError = document.getElementById('qwEmailError');
   const phoneError = document.getElementById('qwPhoneError');
   const leadSubmitBtn = document.getElementById('qwLeadSubmitBtn');
-
-  let leadCaptured = false; // sandt, når info er indsamlet én gang (springes over ved "prøv igen")
 
   function isValidEmail(v){
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -680,12 +663,11 @@ const CONFIG = {
     await subscribeToKlaviyo(name, email, phone);
 
     leadSubmitBtn.disabled = false;
-    leadSubmitBtn.textContent = "Se resultat";
+    leadSubmitBtn.textContent = "Tag quizzen her";
 
-    leadCaptured = true;
     qwTrack('quiz_lead_submitted', { klaviyo_subscribed: klaviyoResult.ok === true });
 
-    showResults();
+    startQuiz();
   });
 
   // ---------------- Klaviyo-tilmelding ----------------
@@ -851,10 +833,8 @@ const CONFIG = {
     if (currentIndex < CONFIG.questions.length - 1) {
       currentIndex++;
       renderQuestion();
-    } else if (leadCaptured) {
-      showResults();
     } else {
-      showScreen(screenLead);
+      showResults();
     }
   });
 
