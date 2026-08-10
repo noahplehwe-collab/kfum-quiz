@@ -967,5 +967,21 @@ const CONFIG = {
 })();
 </script>
 
+<!-- Auto-resize script for iframe -->
+<script>
+  function sendHeight() {
+    const height = document.body.scrollHeight;
+    window.parent.postMessage({ quizHeight: height }, '*');
+  }
+
+  // Send height when loaded and whenever screen resizes
+  window.addEventListener('load', sendHeight);
+  window.addEventListener('resize', sendHeight);
+
+  // Check for height changes (e.g., switching to results page)
+  const observer = new ResizeObserver(sendHeight);
+  observer.observe(document.body);
+</script>
+  
 </body>
 </html>
