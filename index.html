@@ -969,26 +969,24 @@ const CONFIG = {
 
 <!-- Auto-resize script for iframe -->
 <script>
-  function sendHeight() {
-    // Measure the full scroll height including all nested content
-    const body = document.body;
-    const html = document.documentElement;
-
+  function sendQuizHeight() {
+    // Force accurate height calculation across browsers
     const height = Math.max(
-      body.scrollHeight,
-      body.offsetHeight,
-      html.clientHeight,
-      html.scrollHeight,
-      html.offsetHeight
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight
     );
-
-    window.parent.postMessage({ quizHeight: height }, '*');
+    window.parent.postMessage({ type: 'RESIZE_QUIZ', height: height + 30 }, '*');
   }
 
-  window.addEventListener('load', sendHeight);
-  window.addEventListener('resize', sendHeight);
+  // Send updates on load, resize, and click events (when expanding answer boxes)
+  window.addEventListener('load', sendQuizHeight);
+  window.addEventListener('resize', sendQuizHeight);
+  document.addEventListener('click', function() {
+    setTimeout(sendQuizHeight, 100); // Small delay to let animations finish
+  });
 
-  const observer = new ResizeObserver(sendHeight);
+  const observer = new ResizeObserver(sendQuizHeight);
   observer.observe(document.body);
 </script>
   
