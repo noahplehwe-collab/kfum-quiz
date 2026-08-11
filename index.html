@@ -969,25 +969,29 @@ const CONFIG = {
 
 <!-- Auto-resize script for iframe -->
 <script>
+  let lastHeight = 0;
+
   function sendQuizHeight() {
-    // Force accurate height calculation across browsers
-    const height = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight,
-      document.body.offsetHeight
-    );
-    window.parent.postMessage({ type: 'RESIZE_QUIZ', height: height + 30 }, '*');
+    // Measure the quiz card container directly or the main content body
+    const card = document.querySelector('.card') || document.body;
+    const height = Math.ceil(card.getBoundingClientRect().height) + 40;
+
+    // Only send a message if the height changed by more than 5 pixels (prevents infinite loop)
+    if (Math.abs(height - lastHeight) > 5) {
+      lastHeight = height;
+      window.parent.postMessage({ type: 'RESIZE_QUIZ', height: height }, '*');
+    }
   }
 
-  // Send updates on load, resize, and click events (when expanding answer boxes)
+  // Recalculate on page load and window resizes
   window.addEventListener('load', sendQuizHeight);
   window.addEventListener('resize', sendQuizHeight);
-  document.addEventListener('click', function() {
-    setTimeout(sendQuizHeight, 100); // Small delay to let animations finish
-  });
 
-  const observer = new ResizeObserver(sendQuizHeight);
-  observer.observe(document.body);
+  // Recalculate when the user clicks an answer or next button
+  document.addEventListener('click', function() {
+    setTimeout(sendQuizHeight, 50);
+    setTimeout(sendQuizHeight, 300); // Second check to catch any smooth CSS animations
+  });
 </script>
   
 </body>
