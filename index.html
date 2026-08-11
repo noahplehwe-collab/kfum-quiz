@@ -195,6 +195,12 @@
     padding-left:12px;
     border-left:2px solid var(--accent-soft);
   }
+
+  /* Introteksten til hvert spørgsmål skjules på mobil for at holde
+     spørgsmålsskærmen kortere/mindre rodet på små skærme. */
+  @media (max-width: 480px){
+    p.qw-context{ display:none; }
+  }
   h2.qw-question{
     font-family:'Space Grotesk', sans-serif;
     font-size:18.5px;
