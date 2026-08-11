@@ -96,8 +96,8 @@
   }
   .qw-field input{
     width:100%;
-    padding:12px 14px;
-    font-size:15px;
+    padding:13px 14px;
+    font-size:16px;
     font-family:inherit;
     border:1.5px solid var(--line);
     border-radius:10px;
@@ -263,6 +263,13 @@
   .qw-explanation p{ margin:0 0 10px; }
   .qw-explanation p:last-child{ margin-bottom:0; }
 
+  /* På mobil skjules faktaboksen, der dukker op efter et svar — den fylder
+     for meget på små skærme. Farverne på selve svarmulighederne (rigtig/
+     forkert) vises stadig, kun uddybningsteksten skjules. */
+  @media (max-width: 480px){
+    .qw-explanation.show{ display:none; }
+  }
+
   /* ---------- results / "billet" screen ---------- */
   .qw-ticket-divider{
     position:relative;
@@ -387,17 +394,17 @@
     <form id="qwLeadForm" novalidate>
       <div class="qw-field">
         <label for="qwName">Navn</label>
-        <input type="text" id="qwName" name="name" autocomplete="given-name" placeholder="Dit navn">
+        <input type="text" id="qwName" name="name" autocomplete="name" placeholder="Dit navn" enterkeyhint="next">
         <div class="qw-error-msg" id="qwNameError">Indtast dit navn for at fortsætte.</div>
       </div>
       <div class="qw-field">
         <label for="qwEmail">E-mail</label>
-        <input type="email" id="qwEmail" name="email" autocomplete="email" placeholder="du@eksempel.dk">
+        <input type="email" id="qwEmail" name="email" autocomplete="email" inputmode="email" placeholder="du@eksempel.dk" enterkeyhint="next">
         <div class="qw-error-msg" id="qwEmailError">Indtast en gyldig e-mail for at fortsætte.</div>
       </div>
       <div class="qw-field">
         <label for="qwPhone">Telefon</label>
-        <input type="tel" id="qwPhone" name="phone" autocomplete="tel" placeholder="12 34 56 78">
+        <input type="tel" id="qwPhone" name="phone" autocomplete="tel" inputmode="tel" placeholder="12 34 56 78" enterkeyhint="go">
         <div class="qw-error-msg" id="qwPhoneError">Indtast et gyldigt telefonnummer for at fortsætte.</div>
       </div>
       <button type="submit" class="qw-btn" id="qwLeadSubmitBtn">Tag quizzen her</button>
@@ -445,6 +452,7 @@
     <div class="qw-donation">
       <p class="qw-donation-title" id="qwDonationTitle">Vil du være med til at gøre en forskel?</p>
       <p class="qw-donation-text" id="qwDonationText">Som du netop har set, er et varmt og nærende måltid ikke en selvfølge for alle i Danmark. Giv et måltid – serveret med nærvær og omsorg.</p>
+      <button type="button" class="qw-btn qw-hidden" id="qwDonationBtn">Gør en forskel</button>
       <div class="qw-donation-embed" id="qwDonationEmbedWrap">
         <div id="fund" data-of="onlinefundraising.dk/kfumsoc" data-form="2216"></div>
       </div>
@@ -659,6 +667,15 @@ const CONFIG = {
     const digits = v.replace(/[^\d]/g, '');
     return digits.length >= 8;
   }
+
+  // "Næste"/"Enter" på mobil-tastaturet flytter til næste felt i stedet for
+  // at gøre ingenting (eller lukke tastaturet ned) — gør udfyldning glattere.
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); emailInput.focus(); }
+  });
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); phoneInput.focus(); }
+  });
 
   leadForm.addEventListener('submit', async function(e){
     e.preventDefault();
@@ -913,11 +930,16 @@ const CONFIG = {
   }
 
   // ---------------- Donations-embed (onlinefundraising.dk) ----------------
-  // Indlæses automatisk, når resultatsiden vises — ikke ved page load —
-  // fordi embeddet ellers ligger i en skjult (display:none) sektion, og en
-  // del tredjeparts-widgets måler forkert/renderer forkert, hvis de
-  // initialiseres inde i et skjult element.
+  // På desktop indlæses formularen automatisk, når resultatsiden vises.
+  // På mobil (smal skærm) vises den først, når man trykker "Gør en forskel"
+  // — ellers bliver resultatsiden for tung/rodet på små skærme.
+  const donationBtn = document.getElementById('qwDonationBtn');
+  const donationEmbedWrap = document.getElementById('qwDonationEmbedWrap');
   let donationEmbedLoaded = false;
+
+  function isMobileViewport(){
+    return window.matchMedia('(max-width: 480px)').matches;
+  }
 
   function loadDonationEmbed(){
     if (donationEmbedLoaded) return;
@@ -940,6 +962,13 @@ const CONFIG = {
       setTimeout(() => { window.scrollTo({ top: 0, behavior: 'auto' }); qwReportHeight(); }, delay);
     });
   }
+
+  donationBtn.addEventListener('click', () => {
+    donationEmbedWrap.classList.remove('qw-hidden');
+    donationBtn.classList.add('qw-hidden');
+    loadDonationEmbed();
+    qwTrack('quiz_donation_cta_clicked', {});
+  });
 
   function showResults(){
     showScreen(screenResults);
@@ -965,7 +994,14 @@ const CONFIG = {
 
     qwTrack('quiz_completed', { quiz_score: score, quiz_total: total });
 
-    loadDonationEmbed();
+    if (isMobileViewport()) {
+      donationEmbedWrap.classList.add('qw-hidden');
+      donationBtn.classList.remove('qw-hidden');
+    } else {
+      donationEmbedWrap.classList.remove('qw-hidden');
+      donationBtn.classList.add('qw-hidden');
+      loadDonationEmbed();
+    }
 
     if (CONFIG.resultsRedirect.enabled && CONFIG.resultsRedirect.url) {
       startRedirectCountdown(total);
