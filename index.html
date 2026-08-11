@@ -602,30 +602,49 @@ const CONFIG = {
   function showScreen(el){
     [screenGate, screenQuiz, screenResults].forEach(s => s.classList.add('qw-hidden'));
     el.classList.remove('qw-hidden');
+    qwReportHeight();
   }
 
-  // ---------------- GTM / dataLayer tracking ----------------
-  // Pushes to this document's own dataLayer AND to the parent page's dataLayer
-  // (the widget normally runs inside a same-origin iframe on the TYPO3 site,
-  // where GTM is installed on the parent page, not inside the iframe).
-  // No PII (name/email) is included by design — keep it that way unless you
-  // specifically need it and have checked this against your privacy policy.
+  // ---------------- GTM / dataLayer tracking + højde-rapportering ----------------
+  // Widgetten kører i en iframe på et andet domæne end TYPO3-siden
+  // (github.io vs. kfumsoc.dk), så den kan IKKE læse eller skrive direkte til
+  // parent-sidens window.dataLayer eller ændre iframens højde — det blokeres
+  // af browserens same-origin policy. postMessage er den korrekte måde at
+  // sende data ud af en cross-origin iframe på. Se guiden til TYPO3-siden for
+  // det lille lytte-script, der skal stå på selve TYPO3-siden og modtage
+  // disse beskeder (håndterer både GTM-events og automatisk iframe-højde).
+  function qwPostToParent(type, data){
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(Object.assign({ source: "kfum-quiz", type: type }, data || {}), "*");
+      }
+    } catch(e) {}
+  }
+
   function qwTrack(eventName, data){
     const payload = Object.assign({ event: eventName }, data || {});
     try {
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push(payload);
     } catch(e) {}
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.dataLayer = window.parent.dataLayer || [];
-        window.parent.dataLayer.push(payload);
-      }
-    } catch(e) {
-      // parent is cross-origin (widget hosted on a different domain than the
-      // embedding page) — can't reach its dataLayer from here, fails silently.
-    }
+    qwPostToParent("event", { payload: payload });
   }
+
+  function qwReportHeight(){
+    const height = Math.max(
+      document.documentElement.scrollHeight,
+      document.body ? document.body.scrollHeight : 0
+    );
+    qwPostToParent("resize", { height: height });
+  }
+
+  // Rapportér højden, når noget som helst i widgetten ændrer størrelse —
+  // fanger både skærmskift (spørgsmål → resultat) og det, at donationsformularen
+  // (som er asynkron og indlæses fra onlinefundraising.dk) vokser undervejs.
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => qwReportHeight()).observe(document.documentElement);
+  }
+  window.addEventListener('load', () => setTimeout(qwReportHeight, 50));
 
   // ---------------- Lead-formular (navn/e-mail/telefon, vises før quizzen starter) ----------------
   const leadForm = document.getElementById('qwLeadForm');
@@ -917,11 +936,12 @@ const CONFIG = {
     donationEmbedLoaded = true;
 
     // Donationsformularen fra onlinefundraising.dk ser ud til at auto-fokusere
-    // et felt, når den er indlæst, hvilket får browseren til at scrolle ned i
-    // widgettens egen iframe og skjule resultatet i toppen. Tving scroll
-    // tilbage til toppen et par gange, mens formularen initialiserer.
-    [300, 800, 1500].forEach(delay => {
-      setTimeout(() => window.scrollTo({ top: 0, behavior: 'auto' }), delay);
+    // et felt, når den er indlæst, hvilket kan få browseren til at scrolle.
+    // Med automatisk iframe-højde (se TYPO3-guiden) er dette nu kun et
+    // ekstra sikkerhedsnet for det korte øjeblik, før iframens højde er nået
+    // at blive opdateret — ikke den primære løsning som før.
+    [300, 800, 1500, 3000].forEach(delay => {
+      setTimeout(() => { window.scrollTo({ top: 0, behavior: 'auto' }); qwReportHeight(); }, delay);
     });
   }
 
@@ -967,32 +987,5 @@ const CONFIG = {
 })();
 </script>
 
-<!-- Auto-resize script for iframe -->
-<script>
-  let lastHeight = 0;
-
-  function sendQuizHeight() {
-    // Measure the quiz card container directly or the main content body
-    const card = document.querySelector('.card') || document.body;
-    const height = Math.ceil(card.getBoundingClientRect().height) + 40;
-
-    // Only send a message if the height changed by more than 5 pixels (prevents infinite loop)
-    if (Math.abs(height - lastHeight) > 5) {
-      lastHeight = height;
-      window.parent.postMessage({ type: 'RESIZE_QUIZ', height: height }, '*');
-    }
-  }
-
-  // Recalculate on page load and window resizes
-  window.addEventListener('load', sendQuizHeight);
-  window.addEventListener('resize', sendQuizHeight);
-
-  // Recalculate when the user clicks an answer or next button
-  document.addEventListener('click', function() {
-    setTimeout(sendQuizHeight, 50);
-    setTimeout(sendQuizHeight, 300); // Second check to catch any smooth CSS animations
-  });
-</script>
-  
 </body>
 </html>
