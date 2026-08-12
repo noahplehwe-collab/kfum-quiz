@@ -4,6 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quiz</title>
+<script>
+  // Iframen selv er altid smal (max 460px, som en "boks"), uanset om
+  // besøgende sidder på mobil eller desktop — derfor kan CSS-mediequeries
+  // baseret på iframens EGEN bredde ikke bruges til at afgøre mobil vs.
+  // desktop her. Vi bruger i stedet enhedens faktiske skærmbredde og
+  // user-agent, som ikke afhænger af, hvor bredt widgetten selv er
+  // tegnet op på siden. Kører tidligt (i <head>) for at undgå, at layoutet
+  // "blinker" mellem versioner, mens siden loader.
+  (function(){
+    try {
+      var ua = navigator.userAgent || "";
+      var isMobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(ua);
+      var isNarrowScreen = !!(window.screen && window.screen.width && window.screen.width <= 600);
+      if (isMobileUA || isNarrowScreen) {
+        document.documentElement.classList.add('qw-is-mobile');
+      }
+    } catch(e) {}
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -198,9 +217,7 @@
 
   /* Introteksten til hvert spørgsmål skjules på mobil for at holde
      spørgsmålsskærmen kortere/mindre rodet på små skærme. */
-  @media (max-width: 480px){
-    p.qw-context{ display:none; }
-  }
+  html.qw-is-mobile p.qw-context{ display:none; }
   h2.qw-question{
     font-family:'Space Grotesk', sans-serif;
     font-size:18.5px;
@@ -272,9 +289,7 @@
   /* På mobil skjules faktaboksen, der dukker op efter et svar — den fylder
      for meget på små skærme. Farverne på selve svarmulighederne (rigtig/
      forkert) vises stadig, kun uddybningsteksten skjules. */
-  @media (max-width: 480px){
-    .qw-explanation.show{ display:none; }
-  }
+  html.qw-is-mobile .qw-explanation.show{ display:none; }
 
   /* ---------- results / "billet" screen ---------- */
   .qw-ticket-divider{
@@ -381,21 +396,19 @@
 
   /* Kompakt visning af resultatsiden på mobil, så "Gør en forskel"-knappen
      helst er synlig uden at skulle scrolle først. */
-  @media (max-width: 480px){
-    .qw-body{ padding:24px 20px 20px; }
-    .qw-ticket-divider{ margin:18px -20px 16px; }
-    .qw-score-wrap{ margin-bottom:10px; }
-    .qw-score-ring{ width:92px; height:92px; }
-    .qw-score-ring circle{ stroke-width:8; }
-    .qw-score-num strong{ font-size:22px; }
-    .qw-score-num span{ font-size:9.5px; }
-    .qw-result-tier{ font-size:17px; margin-bottom:4px; }
-    .qw-result-msg{ font-size:13px; margin-bottom:14px; }
-    .qw-confirm-banner{ font-size:11.5px; padding:8px 10px; margin-bottom:12px; }
-    .qw-donation{ margin-top:16px; padding-top:16px; }
-    .qw-donation-title{ font-size:16px; margin-bottom:6px; }
-    .qw-donation-text{ font-size:13px; margin-bottom:14px; }
-  }
+  html.qw-is-mobile .qw-body{ padding:24px 20px 20px; }
+  html.qw-is-mobile .qw-ticket-divider{ margin:18px -20px 16px; }
+  html.qw-is-mobile .qw-score-wrap{ margin-bottom:10px; }
+  html.qw-is-mobile .qw-score-ring{ width:92px; height:92px; }
+  html.qw-is-mobile .qw-score-ring circle{ stroke-width:8; }
+  html.qw-is-mobile .qw-score-num strong{ font-size:22px; }
+  html.qw-is-mobile .qw-score-num span{ font-size:9.5px; }
+  html.qw-is-mobile .qw-result-tier{ font-size:17px; margin-bottom:4px; }
+  html.qw-is-mobile .qw-result-msg{ font-size:13px; margin-bottom:14px; }
+  html.qw-is-mobile .qw-confirm-banner{ font-size:11.5px; padding:8px 10px; margin-bottom:12px; }
+  html.qw-is-mobile .qw-donation{ margin-top:16px; padding-top:16px; }
+  html.qw-is-mobile .qw-donation-title{ font-size:16px; margin-bottom:6px; }
+  html.qw-is-mobile .qw-donation-text{ font-size:13px; margin-bottom:14px; }
 
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
@@ -974,7 +987,10 @@ const CONFIG = {
   let donationEmbedLoaded = false;
 
   function isMobileViewport(){
-    return window.matchMedia('(max-width: 480px)').matches;
+    // Iframen selv er altid smal (max 460px), så dens egen bredde kan ikke
+    // bruges til at afgøre mobil vs. desktop — se klassen sat i <head>,
+    // som er baseret på enhedens faktiske skærm/user-agent i stedet.
+    return document.documentElement.classList.contains('qw-is-mobile');
   }
 
   function loadDonationEmbed(){
