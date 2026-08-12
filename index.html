@@ -379,6 +379,24 @@
   }
   .qw-donation-embed{ min-height: 1px; margin-top:16px; }
 
+  /* Kompakt visning af resultatsiden på mobil, så "Gør en forskel"-knappen
+     helst er synlig uden at skulle scrolle først. */
+  @media (max-width: 480px){
+    .qw-body{ padding:24px 20px 20px; }
+    .qw-ticket-divider{ margin:18px -20px 16px; }
+    .qw-score-wrap{ margin-bottom:10px; }
+    .qw-score-ring{ width:92px; height:92px; }
+    .qw-score-ring circle{ stroke-width:8; }
+    .qw-score-num strong{ font-size:22px; }
+    .qw-score-num span{ font-size:9.5px; }
+    .qw-result-tier{ font-size:17px; margin-bottom:4px; }
+    .qw-result-msg{ font-size:13px; margin-bottom:14px; }
+    .qw-confirm-banner{ font-size:11.5px; padding:8px 10px; margin-bottom:12px; }
+    .qw-donation{ margin-top:16px; padding-top:16px; }
+    .qw-donation-title{ font-size:16px; margin-bottom:6px; }
+    .qw-donation-text{ font-size:13px; margin-bottom:14px; }
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
   }
@@ -613,16 +631,18 @@ const CONFIG = {
     [screenGate, screenQuiz, screenResults].forEach(s => s.classList.add('qw-hidden'));
     el.classList.remove('qw-hidden');
     qwReportHeight();
+    qwScrollParentToTop();
   }
 
-  // ---------------- GTM / dataLayer tracking + højde-rapportering ----------------
+  // ---------------- GTM / dataLayer tracking + højde/scroll-rapportering ----------------
   // Widgetten kører i en iframe på et andet domæne end TYPO3-siden
   // (github.io vs. kfumsoc.dk), så den kan IKKE læse eller skrive direkte til
-  // parent-sidens window.dataLayer eller ændre iframens højde — det blokeres
-  // af browserens same-origin policy. postMessage er den korrekte måde at
-  // sende data ud af en cross-origin iframe på. Se guiden til TYPO3-siden for
-  // det lille lytte-script, der skal stå på selve TYPO3-siden og modtage
-  // disse beskeder (håndterer både GTM-events og automatisk iframe-højde).
+  // parent-sidens window.dataLayer, ændre iframens højde, eller scrolle
+  // parent-siden — det blokeres af browserens same-origin policy.
+  // postMessage er den korrekte måde at sende data ud af en cross-origin
+  // iframe på. Se TYPO3-guiden for det lille lytte-script på TYPO3-siden,
+  // der modtager disse beskeder (håndterer GTM-events, automatisk
+  // iframe-højde, og scroll-til-top).
   function qwPostToParent(type, data){
     try {
       if (window.parent && window.parent !== window) {
@@ -646,6 +666,16 @@ const CONFIG = {
       document.body ? document.body.scrollHeight : 0
     );
     qwPostToParent("resize", { height: height });
+  }
+
+  // Beder TYPO3-siden om at scrolle tilbage til toppen af iframen ved hvert
+  // skærmskift. Nødvendig fordi den ydre side nogle gange er scrollet ned
+  // (typisk fordi mobilens tastatur lige har lukket sig efter udfyldning af
+  // lead-formularen), og widgetten kan ikke selv rette parent-sidens scroll
+  // — kun parent-siden kan (se lytte-scriptet i TYPO3-guiden).
+  function qwScrollParentToTop(){
+    qwPostToParent("scrollTop", {});
+    setTimeout(() => qwPostToParent("scrollTop", {}), 150);
   }
 
   // Rapportér højden, når noget som helst i widgetten ændrer størrelse —
